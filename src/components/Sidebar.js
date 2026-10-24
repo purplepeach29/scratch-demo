@@ -76,29 +76,32 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="w-52 flex-none h-full overflow-y-auto flex flex-col p-2 border-r border-gray-200 bg-gray-50">
+    <div className="w-full sm:w-44 lg:w-52 flex-none h-full overflow-y-auto flex flex-col p-2 border-b sm:border-b-0 sm:border-r border-gray-200 bg-gray-50">
       <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">
         Blocks
       </div>
 
-      {CATEGORIES.map(cat => (
-        <div key={cat.name} className="mb-3">
-          <div className="text-xs font-bold text-gray-600 mb-1 px-1">{cat.name}</div>
+      {/* Two columns on phones */}
+      <div className="grid grid-cols-2 gap-x-2 sm:block">
+        {CATEGORIES.map(cat => (
+          <div key={cat.name} className="mb-3">
+            <div className="text-xs font-bold text-gray-600 mb-1 px-1">{cat.name}</div>
 
-          {cat.blocks.map(entry => (
-            <div
-              key={entry.type}
-              draggable
-              onDragStart={e => onDragStart(e, entry)}
-              className={`${cat.color} text-white flex flex-row items-center flex-wrap gap-1 px-2 py-1.5 mb-1 rounded text-xs cursor-grab active:cursor-grabbing select-none shadow-sm hover:brightness-110 transition-all`}
-            >
-              <entry.label />
-            </div>
-          ))}
-        </div>
-      ))}
+            {cat.blocks.map(entry => (
+              <div
+                key={entry.type}
+                draggable
+                onDragStart={e => onDragStart(e, entry)}
+                className={`${cat.color} text-white flex flex-row items-center flex-wrap gap-1 px-2 py-1.5 mb-1 rounded text-xs cursor-grab active:cursor-grabbing select-none shadow-sm hover:brightness-110 transition-all`}
+              >
+                <entry.label />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
 
-      <div className="mt-auto pt-2 text-xs text-gray-400 text-center">
+      <div className="hidden sm:block mt-auto pt-2 text-xs text-gray-400 text-center">
         ← drag blocks to the script →
       </div>
     </div>

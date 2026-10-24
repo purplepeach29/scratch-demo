@@ -39,7 +39,7 @@ export default function MidArea({ sprite, onAddBlock, onUpdateBlock, onDeleteBlo
 
   return (
     <div
-      className="flex-1 h-full overflow-auto p-3 bg-gray-50"
+      className="flex-1 md:h-full min-h-64 md:min-h-0 overflow-auto p-3 bg-gray-50"
       onDragOver={e => e.preventDefault()}
       onDrop={onDrop}
     >
@@ -84,13 +84,13 @@ function BlockCard({ block, onUpdate, onDelete, onInnerDrop, onAddInnerBlock }) 
     <div className={`rounded text-white text-xs ${isRepeat ? "border-l-4 border-red-600" : ""}`}>
 
       {/* ── Block header row ──────────────────────────────────────────────── */}
-      <div className={`${color} flex items-center gap-1 px-2 py-1.5 ${isRepeat ? "rounded-t" : "rounded"}`}>
+      <div className={`${color} flex flex-wrap items-center gap-1 px-2 py-1.5 ${isRepeat ? "rounded-t" : "rounded"}`}>
 
         <BlockLabel block={block} />
 
         {/* Inline param inputs — clicking stops propagation so dragging the card
             by accident doesn't start a drag while the user is typing */}
-        <div className="flex items-center gap-1 ml-1" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center gap-1 ml-1" onClick={e => e.stopPropagation()}>
           <BlockInputs block={block} onUpdate={onUpdate} />
         </div>
 

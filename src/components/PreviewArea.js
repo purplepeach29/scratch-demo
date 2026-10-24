@@ -1,5 +1,10 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import CatSprite from "./CatSprite";
+
+// Upper bound 
+const MAX_SCALE = 2;
+// Stage border width (border-2) on each side, excluded from the fit calculation.
+const STAGE_BORDER = 2;
 
 export default function PreviewArea({
   sprites, activeSprite, setActiveSprite,
@@ -7,6 +12,26 @@ export default function PreviewArea({
   onAddSprite, onRemoveSprite,
   STAGE_W, STAGE_H, COLORS,
 }) {
+  // Fit the stage into whatever space its container has
+  const stageAreaRef = useRef(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = stageAreaRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      const fit = Math.min(
+        (width - STAGE_BORDER * 2) / STAGE_W,
+        (height - STAGE_BORDER * 2) / STAGE_H,
+        MAX_SCALE,
+      );
+      setScale(Math.max(fit, 0));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [STAGE_W, STAGE_H]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
@@ -25,28 +50,36 @@ export default function PreviewArea({
       </div>
 
       {/* Stage */}
-      <div className="flex-1 flex items-center justify-center bg-white overflow-hidden p-2">
+      <div
+        ref={stageAreaRef}
+        className="h-64 sm:h-80 md:h-auto md:flex-1 md:min-h-0 flex items-center justify-center bg-white overflow-hidden p-2"
+      >
         <div
           className="relative bg-white border-2 border-gray-200 rounded overflow-hidden flex-none"
-          style={{ width: STAGE_W, height: STAGE_H, maxWidth: "100%", maxHeight: "100%" }}
+          style={{ width: STAGE_W * scale, height: STAGE_H * scale, boxSizing: "content-box" }}
         >
-          {sprites.map(sprite => (
-            <SpriteOnStage
-              key={sprite.id}
-              sprite={sprite}
-              STAGE_W={STAGE_W}
-              STAGE_H={STAGE_H}
-              COLORS={COLORS}
-              isActive={sprite.id === activeSprite}
-              onClick={() => setActiveSprite(sprite.id)}
-            />
-          ))}
+          <div
+            className="absolute top-0 left-0"
+            style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})`, transformOrigin: "top left" }}
+          >
+            {sprites.map(sprite => (
+              <SpriteOnStage
+                key={sprite.id}
+                sprite={sprite}
+                STAGE_W={STAGE_W}
+                STAGE_H={STAGE_H}
+                COLORS={COLORS}
+                isActive={sprite.id === activeSprite}
+                onClick={() => setActiveSprite(sprite.id)}
+              />
+            ))}
 
-          {/* Crosshair at origin */}
-          <div className="absolute pointer-events-none opacity-10"
-            style={{ left: STAGE_W / 2 - 0.5, top: 0, width: 1, height: "100%", background: "#999" }} />
-          <div className="absolute pointer-events-none opacity-10"
-            style={{ top: STAGE_H / 2 - 0.5, left: 0, height: 1, width: "100%", background: "#999" }} />
+            {/* Crosshair at origin */}
+            <div className="absolute pointer-events-none opacity-10"
+              style={{ left: STAGE_W / 2 - 0.5, top: 0, width: 1, height: "100%", background: "#999" }} />
+            <div className="absolute pointer-events-none opacity-10"
+              style={{ top: STAGE_H / 2 - 0.5, left: 0, height: 1, width: "100%", background: "#999" }} />
+          </div>
         </div>
       </div>
 

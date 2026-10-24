@@ -264,10 +264,10 @@ export default function App() {
   const activeSpriteDef = sprites.find(s => s.id === activeSprite) || sprites[0];
 
   return (
-    <div className="bg-blue-100 pt-6 font-sans">
-      <div className="h-screen overflow-hidden flex flex-row">
+    <div className="bg-blue-100 pt-6 font-sans min-h-screen md:h-screen md:overflow-hidden flex flex-col">
+      <div className="flex-1 md:min-h-0 flex flex-col md:flex-row gap-4 md:gap-0">
 
-        <div className="flex-1 h-screen overflow-hidden flex flex-row bg-white border-t border-r border-gray-200 rounded-tr-xl mr-2">
+        <div className="md:flex-1 overflow-hidden flex flex-col sm:flex-row bg-white border-t md:border-r border-gray-200 rounded-t-xl md:rounded-tl-none md:mr-2">
           <Sidebar />
           <MidArea
             sprite={activeSpriteDef}
@@ -278,7 +278,7 @@ export default function App() {
           />
         </div>
 
-        <div className="w-2/5 h-screen overflow-hidden flex flex-col bg-white border-t border-l border-gray-200 rounded-tl-xl ml-2">
+        <div className="w-full md:w-2/5 md:flex-none overflow-hidden flex flex-col bg-white border-t md:border-l border-gray-200 rounded-t-xl md:rounded-tr-none md:ml-2">
           <PreviewArea
             sprites={sprites}
             activeSprite={activeSprite}
