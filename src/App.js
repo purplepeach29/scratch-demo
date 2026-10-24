@@ -124,26 +124,29 @@ export default function App() {
     const state = {
       sprites: sprites.map(s => ({ ...s, x: s.homeX, y: s.homeY, direction: 0, blocks: deepClone(s.blocks), speechBubble: null })),
       stopped: false,
-      aborted: new Set(),
+      gen: {},
+      running: 0, // live loops + pending relaunches; Play ends when this hits 0
       swappedPairs: new Set(),
     };
     animRef.current = state;
 
-    // Immediately render the reset positions so the stage shows home before frame 1.
-    setSprites(state.sprites.map(s => ({ ...s })));
-
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const pad = 24; // keep sprites inside stage edges
+    const isLive = (spriteId, gen) => !state.stopped && state.gen[spriteId] === gen;
 
-    // Flush mutable state to React for rendering.
     function flush() {
-      setSprites(state.sprites.map(s => ({ ...s })));
+      setSprites(prev => prev.map(s => {
+        const live = state.sprites.find(l => l.id === s.id);
+        return live ? { ...s, x: live.x, y: live.y, direction: live.direction, speechBubble: live.speechBubble } : s;
+      }));
     }
 
+    flush();
+
     // ── Single-block executor ────────────────────────────────────────────────
-    async function execBlock(spriteId, block) {
-      if (state.stopped || state.aborted.has(spriteId)) return;
+    async function execBlock(spriteId, block, gen) {
+      if (!isLive(spriteId, gen)) return;
       const sp = state.sprites.find(s => s.id === spriteId);
       if (!sp) return;
 
@@ -180,8 +183,8 @@ export default function App() {
         case "REPEAT": {
           const times = Number(block.times) || 0;
           for (let i = 0; i < times; i++) {
-            if (state.stopped || state.aborted.has(spriteId)) return;
-            await execBlocks(spriteId, block.blocks || []);
+            if (!isLive(spriteId, gen)) return;
+            await execBlocks(spriteId, block.blocks || [], gen);
           }
           break;
         }
@@ -192,7 +195,7 @@ export default function App() {
           sp.speechBubble = { text: block.message, kind: block.type.toLowerCase() };
           flush();
           await sleep(Number(block.seconds) * 1000);
-          if (state.stopped || state.aborted.has(spriteId)) return;
+          if (!isLive(spriteId, gen)) return;
           sp.speechBubble = null;
           flush();
           break;
@@ -202,11 +205,22 @@ export default function App() {
       }
     }
 
-    async function execBlocks(spriteId, blocks) {
+    async function execBlocks(spriteId, blocks, gen) {
       for (const block of blocks) {
-        if (state.stopped || state.aborted.has(spriteId)) return;
-        await execBlock(spriteId, block);
+        if (!isLive(spriteId, gen)) return;
+        await execBlock(spriteId, block, gen);
       }
+    }
+
+    function run(spriteId) {
+      const sp = state.sprites.find(s => s.id === spriteId);
+      if (!sp) return;
+      const gen = (state.gen[spriteId] || 0) + 1;
+      state.gen[spriteId] = gen;
+      state.running++;
+      execBlocks(spriteId, sp.blocks, gen).finally(() => {
+        if (--state.running === 0 && !state.stopped) setIsPlaying(false);
+      });
     }
 
     function checkCollisions(movedId) {
@@ -229,28 +243,24 @@ export default function App() {
 
           [moved.blocks, other.blocks] = [other.blocks, moved.blocks];
 
-          // Signal running loops to exit at next await
-          state.aborted.add(movedId);
-          state.aborted.add(other.id);
+          state.gen[movedId]++;
+          state.gen[other.id]++;
 
-          // Re-launch with swapped blocks after both loops have had time to exit
+          state.running++;
           setTimeout(() => {
-            if (state.stopped) return;
-            state.aborted.delete(movedId);
-            state.aborted.delete(other.id);
-            Promise.all([
-              execBlocks(movedId, moved.blocks),
-              execBlocks(other.id, other.blocks),
-            ]);
+            if (!state.stopped) {
+              run(movedId);
+              run(other.id);
+            }
+            state.running--;
           }, 150);
         }
       }
     }
 
-    // Kick off all sprite loops concurrently; mark play as done when all finish.
-    Promise.all(state.sprites.map(s => execBlocks(s.id, s.blocks))).then(() => {
-      if (!state.stopped) setIsPlaying(false);
-    });
+    // Kick off all sprite loops concurrently; run() ends Play when all finish.
+    state.sprites.forEach(s => run(s.id));
+    if (state.running === 0) setIsPlaying(false);
   }
 
   function handleStop() {
